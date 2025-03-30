@@ -8,7 +8,7 @@ function run() {
  async function fetchText() {
     console.log("in fetch");
     try {
-      const response = await fetch("../files/rainbow.txt");
+      const response = await fetch("./files/rainbow.txt");
       const raw_rainbow_text = await response.text();
 
       document.querySelector('#stepOneButton').style.display = 'none';
@@ -87,9 +87,9 @@ function run() {
     output.style.display = "flex";
     output.addEventListener("mouseover", ()=>{
       console.log("hovered");
-      const charList = document.querySelectorAll("p");
-      for (let char of charList){
-        char.moveToRandom();
+      for (let i = 0; i < character_list.length; i++){
+        console.log(character_list[i]);
+        character_list[i].moveToRandom();
       }
       
     })
@@ -108,7 +108,8 @@ function run() {
       moveToRandom(){
         console.log("hu");
         try{
-        if (this.reference === undefined){
+         
+        if (this.reference == undefined){
           return
         };
 
@@ -116,15 +117,16 @@ function run() {
 
         this.reference.style.position = "absolute";
 
-        
-        while (this.reference.getBoundingClientRect().top != this.randomPos[0] && this.reference.getBoundingClientRect().left != this.randomPos[1]){
+        if(this.reference.getBoundingClientRect().top != this.randomPos[0] && this.reference.getBoundingClientRect().left != this.randomPos[1]){
           if (this.reference.getBoundingClientRect().top < this.randomPos[0]){
-            this.reference.style.top = `${this.reference.getBoundingClientRect().top + 1}px`;
+              this.reference.style.top = `${this.reference.getBoundingClientRect().top + 1}px`;
           } else if (this.reference.getBoundingClientRect().top > this.randomPos[0]){
-            this.reference.style.top = `${this.reference.getBoundingClientRect().top - 1}px`;
+              this.reference.style.top = `${this.reference.getBoundingClientRect().top - 1}px`;
           }
-        }
 
+          setTimeout(this.moveToRandom, 1000);
+        }
+        
         } catch(e){console.log(e)}
           
       
@@ -137,7 +139,6 @@ function run() {
       const newCharacter = new Character(new_sentence[i], [Math.random(), Math.random()]);
       character_list.push(newCharacter);
       addCharacter(newCharacter);
-
     }
 
     
