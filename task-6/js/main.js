@@ -83,56 +83,129 @@ function run() {
     try{
     document.querySelector("#output").style.display = "flex";
     let output = document.querySelector("#output");
-    output.attributes.style.value = "width: 100%; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; flex-basis: 0;";
+    output.attributes.style.value = "width: 100%; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; flex-basis: 0; position: relative; overflow: hidden;";
     output.style.display = "flex";
-    output.addEventListener("mouseover", ()=>{
-      console.log("hovered");
-      for (let i = 0; i < character_list.length; i++){
-        console.log(character_list[i]);
-        character_list[i].moveToRandom();
-      }
-      
-    })
-
+    
     let character_list = [];
+
+    let isRandomized = false;
+
+    output.addEventListener("mouseenter", ()=>{
+      console.log("entered container");
+      if (!isRandomized) {
+        const containerRect = output.getBoundingClientRect();
+        for (let i = 0; i < character_list.length; i++){
+          character_list[i].moveToRandom(containerRect);
+        }
+        isRandomized = true;
+      }
+    });
+
+    output.addEventListener("mousemove", (e) => {
+      for (let i = 0; i < character_list.length; i++){
+        character_list[i].moveWithParallax(e);
+      }
+    });
+
+    output.addEventListener("mouseleave", () => {
+      for (let i = 0; i < character_list.length; i++){
+        character_list[i].returnToOriginal();
+      }
+      isRandomized = false;
+    });
 
     class Character {
       constructor(char){
         this.char = char;
         this.color = colorGenerator();
-        this.randomPos = [Math.random(), Math.random()];
         this.reference;
         this.initialPos;
+        this.originalTop = 0;
+        this.originalLeft = 0;
+        this.randomPos = [0, 0];
       }
  
-      moveToRandom(){
-        console.log("hu");
+      moveToRandom(containerRect){
         try{
-         
-        if (this.reference == undefined){
-          return
-        };
-
-        this.initialPos = this.reference.getBoundingClientRect();
-
-        this.reference.style.position = "absolute";
-
-        if(this.reference.getBoundingClientRect().top != this.randomPos[0] && this.reference.getBoundingClientRect().left != this.randomPos[1]){
-          if (this.reference.getBoundingClientRect().top < this.randomPos[0]){
-              this.reference.style.top = `${this.reference.getBoundingClientRect().top + 1}px`;
-          } else if (this.reference.getBoundingClientRect().top > this.randomPos[0]){
-              this.reference.style.top = `${this.reference.getBoundingClientRect().top - 1}px`;
+          if (this.reference == undefined){
+            return;
           }
 
-          setTimeout(this.moveToRandom, 1000);
+          // store initial position
+          if (!this.initialPos) {
+            const rect = this.reference.getBoundingClientRect();
+            this.initialPos = rect;
+            this.originalTop = rect.top;
+            this.originalLeft = rect.left;
+          }
+
+          // calculate random positions within the container
+          this.randomPos = [
+            Math.floor(Math.random() * (containerRect.height)), 
+            Math.floor(Math.random() * (containerRect.width))
+          ];
+
+          this.reference.style.position = "absolute";
+          this.reference.style.top = `${this.randomPos[0]}px`;
+          this.reference.style.left = `${this.randomPos[1]}px`;
+          this.reference.style.zIndex = "1";
+        } catch(e){
+          console.log(e);
         }
-        
-        } catch(e){console.log(e)}
-          
-      
-        
       }
-        
+
+      moveWithParallax(e) {
+        try {
+          if (!this.reference || !this.initialPos) return;
+          
+          const mouseX = e.clientX;
+          const mouseY = e.clientY;
+          
+          // get container dimensions and position
+          const container = document.querySelector("#output");
+          const containerRect = container.getBoundingClientRect();
+          
+          // relative mouse position within container
+          const relX = mouseX - containerRect.left;
+          const relY = mouseY - containerRect.top;
+
+          const centerX = containerRect.width / 2;
+          const centerY = containerRect.height / 2;
+          
+          // percentage from center (-1 to 1)
+          const percentX = (relX - centerX) / centerX;
+          const percentY = (relY - centerY) / centerY;
+          
+          // movement amount based on character position (creates depth)
+          const index = character_list.indexOf(this);
+          const depth = (index % 5) + 1; // 1-5 depth factor
+          
+          // limit movement to container boundaries
+          const maxOffset = 20;
+          const offsetX = percentX * maxOffset * (depth / 5);
+          const offsetY = percentY * maxOffset * (depth / 5);
+          
+          this.reference.style.transition = "transform 0.2s ease-out";
+          this.reference.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+        } catch(e) {
+          console.log(e);
+        }
+      }
+      
+      returnToOriginal() {
+        try {
+          if (!this.reference) return;
+          
+          this.reference.style.position = "";
+          this.reference.style.top = "";
+          this.reference.style.left = "";
+          this.reference.style.transform = "";
+          this.reference.style.zIndex = "";
+          
+        } catch(e) {
+          console.log(e);
+        }
+      }
     }
 
     for (let i = 0; i < new_sentence.length; i++){
@@ -144,13 +217,20 @@ function run() {
     
     function addCharacter(character){
       const newElement = document.createElement("div");
-      // newElement.style.position = "absolute";
-      const elementIndex = character_list.indexOf(character);
-      // newElement.style.top = `${elementIndex}%`;
-      // newElement.style.left = `${elementIndex * 10}%`;
       character.reference = newElement;
 
-      newElement.innerHTML = character.char;
+      // Make spaces visible by giving them a special representation
+      if (character.char === ' ') {
+        newElement.innerHTML = '&nbsp;'; // Non-breaking space
+        newElement.style.width = '10px'; // Give space a width
+        newElement.style.height = '10px'; // Give space a height
+        newElement.style.border = '1px dashed rgba(200,200,200,0.5)'; // Show a border for spaces
+        newElement.style.borderRadius = '50%';
+        newElement.style.margin = '3px';
+      } else {
+        newElement.innerHTML = character.char;
+      }
+      
       newElement.style.color = `rgb(${character.color[0]},${character.color[1]},${character.color[2]})`
       output.appendChild(newElement);
     }
