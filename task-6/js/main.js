@@ -102,9 +102,11 @@ function run() {
         this.color = colorGenerator();
         this.randomPos = [Math.random(), Math.random()];
         this.reference;
+        this.initialPos;
       }
  
       moveToRandom(){
+        console.log("hu");
         try{
         if (this.reference === undefined){
           return
@@ -149,7 +151,6 @@ function run() {
 
       newElement.innerHTML = character.char;
       newElement.style.color = `rgb(${character.color[0]},${character.color[1]},${character.color[2]})`
-      
       output.appendChild(newElement);
     }
     
